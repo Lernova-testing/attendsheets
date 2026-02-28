@@ -973,14 +973,14 @@ export const AttendanceSheet: React.FC<AttendanceSheetProps> = ({
     };
     
     // Listen for QR scan events
-    window.addEventListener('qr-student-scanned', handleQRScan as EventListener);
-    window.addEventListener('qr-session-completed', handleSessionCompleted as EventListener);
+    window.addEventListener('qr-student-scanned', handleQRScan as unknown as EventListener);
+    window.addEventListener('qr-session-completed', handleSessionCompleted as unknown as EventListener);
     
     console.log(`[ATTENDANCE_SHEET] 👂 Listening for real-time QR scan events for class ${activeClass.id}`);
     
     return () => {
-      window.removeEventListener('qr-student-scanned', handleQRScan as EventListener);
-      window.removeEventListener('qr-session-completed', handleSessionCompleted as EventListener);
+      window.removeEventListener('qr-student-scanned', handleQRScan as unknown as EventListener);
+      window.removeEventListener('qr-session-completed', handleSessionCompleted as unknown as EventListener);
       console.log(`[ATTENDANCE_SHEET] 🔇 Stopped listening for QR scan events`);
     };
   }, [activeClass.id, onUpdateClassData]);
