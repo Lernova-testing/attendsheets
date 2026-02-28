@@ -782,6 +782,10 @@ def add_trusted_device(user_id: str, device_info: Dict[str, Any]):
             "browser": device_info.get("browser", "Unknown"),
             "os": device_info.get("os", "Unknown"),
             "device": device_info.get("device", "Unknown"),
+            "screen": device_info.get("screen", "Unknown"),
+            "timezone": device_info.get("timezone", "Unknown"),
+            "approved_by": device_info.get("approved_by"),       # None for first device, teacher name for subsequent
+            "approved_at": device_info.get("approved_at"),       # None for first device, timestamp for subsequent
             "first_seen": datetime.utcnow().isoformat(),
             "last_seen": datetime.utcnow().isoformat(),
             "login_count": 1
@@ -800,7 +804,6 @@ def add_trusted_device(user_id: str, device_info: Dict[str, Any]):
         db.update_user(user_id, trusted_devices=trusted_devices)
     else:
         db.update_student(user_id, {"trusted_devices": trusted_devices})
-
 
 # ==================== API ENDPOINTS ====================
 
