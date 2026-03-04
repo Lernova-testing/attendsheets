@@ -420,7 +420,7 @@ export const QRAttendanceModal: React.FC<QRAttendanceModalProps> = ({
                                 </button>
                                 <button
                                     onClick={onClose}
-                                    className="absolute top-4 right-4 md:top-6 md:right-6 p-2 hover:bg-white/20 rounded-xl transition-all duration-200 disabled:opacity-50 group">
+                                    className="w-full px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm sm:text-base font-semibold rounded-lg sm:rounded-xl hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2">
                                     <X className="w-5 h-5 md:w-6 md:h-6 text-white group-hover:rotate-90 transition-transform duration-200" /> 
                                     Cancel
                                 </button>
