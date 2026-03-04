@@ -284,11 +284,6 @@ export const QRAttendanceModal: React.FC<QRAttendanceModalProps> = ({
                     {/* Header */}
                     <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
                         <div className="flex items-center justify-between">
-                            <button
-                                onClick={onClose}
-                                className="absolute top-4 right-4 md:top-6 md:right-6 p-2 hover:bg-white/20 rounded-xl transition-all duration-200 disabled:opacity-50 group">
-                                <X className="w-5 h-5 md:w-6 md:h-6 text-white group-hover:rotate-90 transition-transform duration-200" />
-                            </button>
                             <div className="flex-1 min-w-0">
                                 <h2 className="text-base sm:text-xl md:text-2xl font-bold text-white truncate">
                                     QR Code Attendance
@@ -422,6 +417,12 @@ export const QRAttendanceModal: React.FC<QRAttendanceModalProps> = ({
                                 >
                                     <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
                                     Start QR Session
+                                </button>
+                                <button
+                                    onClick={onClose}
+                                    className="absolute top-4 right-4 md:top-6 md:right-6 p-2 hover:bg-white/20 rounded-xl transition-all duration-200 disabled:opacity-50 group">
+                                    <X className="w-5 h-5 md:w-6 md:h-6 text-white group-hover:rotate-90 transition-transform duration-200" /> 
+                                    Cancel
                                 </button>
                             </div>
                         ) : (
