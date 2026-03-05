@@ -847,7 +847,10 @@ class MongoDBManager:
                 "name": student_info.get("name"),
                 "rollNo": student_info.get("rollNo"),
                 "email": student_info.get("email"),
-                "attendance": {}
+                "attendance": {},
+                # Spread custom field values directly onto the student record so they
+                # appear as regular columns (keyed by column id) in the teacher's sheet.
+                **(student_info.get("custom_fields") or {}),
             }
 
             # Fetch, append, sort, and write back
