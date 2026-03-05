@@ -5,11 +5,18 @@ import { useRouter } from 'next/navigation';
 import { getDeviceFingerprint, DeviceInfo } from './deviceFingerprint';
 import { fetchWithRetry } from './fetchWithTimeout';
 
-interface User {
+export interface UserOverview {
+  totalClasses: number;
+  totalStudents: number;
+  lastUpdated?: string;
+}
+
+export interface User {
   id: string;
   email: string;
   name: string;
   role?: string;
+  overview?: UserOverview;
 }
 
 interface AuthContextType {
