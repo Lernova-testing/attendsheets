@@ -330,15 +330,19 @@ export default function StudentDashboard() {
   });
 
   const overallStats = classes.length > 0 ? (() => {
-    const percentages = classes.map(c => getPercentage(c.statistics));
-    const avgAttendance = percentages.length > 0
-      ? percentages.reduce((sum, p) => sum + p, 0) / percentages.length
+    // Pool raw counts across all classes (same formula as backend)
+    const totalPresent = classes.reduce((sum, c) => sum + getCount(c.statistics?.present ?? c.statistics?.present_days), 0);
+    const totalLate = classes.reduce((sum, c) => sum + getCount(c.statistics?.late), 0);
+    const totalSessions = classes.reduce((sum, c) => sum + getCount(c.statistics?.total_classes ?? c.statistics?.total_days), 0);
+  
+    const avgAttendance = totalSessions > 0
+      ? ((totalPresent + totalLate) / totalSessions) * 100
       : 0;
-
+  
     return {
       totalClasses: classes.length,
       avgAttendance,
-      totalPresent: classes.reduce((sum, c) => sum + getCount(c.statistics?.present ?? c.statistics?.present_days), 0),
+      totalPresent,
       totalAbsent: classes.reduce((sum, c) => sum + getCount(c.statistics?.absent), 0),
     };
   })() : null;
