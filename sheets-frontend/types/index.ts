@@ -9,6 +9,7 @@ export interface CustomColumn {
   label: string;
   type: 'text' | 'number' | 'select';
   options?: string[];
+  requiredOnEnrollment?: boolean;
 }
 
 export interface Student {
