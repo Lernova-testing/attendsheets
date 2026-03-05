@@ -394,15 +394,74 @@ class MongoDBManager:
         return self.get_user(user_id)
     
     def update_student(self, student_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
-        """Update student data"""
+        """Update student data and sync name changes to all class records."""
         student_data = self.get_student(student_id)
         if not student_data:
             raise ValueError(f"Student {student_id} not found")
-        
+    
         updates["updated_at"] = datetime.utcnow().isoformat()
         self.students.update_one({"id": student_id}, {"$set": updates})
-        
+    
+        # ✅ If name changed, propagate to all class student records
+        if "name" in updates and updates["name"] != student_data.get("name"):
+            self._sync_student_name_to_classes(student_id, updates["name"])
+    
         return self.get_student(student_id)
+
+    def _sync_student_name_to_classes(self, student_id: str, new_name: str) -> None:
+        """
+        Propagate a student's new name into every class document that embeds them.
+    
+        Enrollment records link student_id → student_record_id (the id of the
+        student object inside the class's `students` array).  We iterate over all
+        active enrollments, then do an array-element update on each class doc.
+        """
+        try:
+            enrollments = list(self.enrollments.find(
+                {"student_id": student_id},   # active OR inactive — keep name fresh
+                {"_id": 0, "class_id": 1, "student_record_id": 1}
+            ))
+    
+            if not enrollments:
+                return
+    
+            print(f"[SYNC_NAME] Syncing name '{new_name}' for student {student_id} "
+                  f"across {len(enrollments)} enrollment(s)")
+    
+            for enrollment in enrollments:
+                class_id = enrollment.get("class_id")
+                student_record_id = enrollment.get("student_record_id")
+    
+                if not class_id or not student_record_id:
+                    continue
+    
+                # class_id in enrollments is always a string; the classes collection
+                # stores `id` as int or string depending on how it was created.
+                id_variants = self._class_id_variants(class_id)
+    
+                result = self.classes.update_one(
+                    {
+                        "id": {"$in": id_variants},
+                        "students.id": student_record_id
+                    },
+                    {
+                        "$set": {
+                            "students.$.name": new_name,
+                            "updated_at": datetime.utcnow().isoformat()
+                        }
+                    }
+                )
+    
+                if result.modified_count:
+                    print(f"[SYNC_NAME]   ✅ Updated class {class_id} "
+                          f"(record {student_record_id})")
+                else:
+                    print(f"[SYNC_NAME]   ⚠️  No match in class {class_id} "
+                          f"(record {student_record_id})")
+    
+        except Exception as e:
+            # Name sync is best-effort; don't crash the profile update
+            print(f"[SYNC_NAME] ❌ Error syncing name to classes: {e}")
     
     def delete_user(self, user_id: str) -> bool:
         """Delete user and all associated data"""
