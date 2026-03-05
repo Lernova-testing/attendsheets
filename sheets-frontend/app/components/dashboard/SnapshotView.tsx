@@ -12,7 +12,6 @@ interface SnapshotViewProps {
   onClassSelect: (id: number) => void;
   defaultThresholds: AttendanceThresholds;
   onOpenClassSettings: (classId: number) => void;
-  totalUniqueStudents: number;
 }
 
 export const SnapshotView: React.FC<SnapshotViewProps> = ({
@@ -22,7 +21,6 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({
   onClassSelect,
   defaultThresholds,
   onOpenClassSettings,
-  totalUniqueStudents,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sessionData, setSessionData] = useState<Record<string, any[]>>({});
@@ -112,7 +110,9 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({
     filteredClasses.forEach(cls => {
       const thresholds = cls.thresholds || defaultThresholds;
       const students = cls.students || [];
-      
+
+      totalStudents += students.length;
+
       students.forEach(student => {
         const stats = calculateStudentAttendance(
           student.attendance,
@@ -214,7 +214,7 @@ export const SnapshotView: React.FC<SnapshotViewProps> = ({
             </div>
           </div>
           <p className="text-xs text-slate-600 mb-1">Total Students</p>
-          <p className="text-2xl sm:text-2xl font-bold text-slate-900">{totalUniqueStudents}</p>
+          <p className="text-xl sm:text-2xl font-bold text-slate-900">{overallStats.totalStudents}</p>
         </div>
 
         <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-5 shadow-md border border-cyan-200 col-span-2 sm:col-span-1">
