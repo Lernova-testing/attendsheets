@@ -544,28 +544,22 @@ class MongoDBManager:
         except Exception as e:
             print(f"[DELETE_STUDENT] ❌ ERROR: {e}")
             return False
-    
+            
     def update_user_overview(self, user_id: str):
+        """Update user overview statistics"""
         user_data = self.get_user(user_id)
         if not user_data:
             return
         
         classes = self.get_all_classes(user_id)
-        class_ids = [self._class_rel_id(cls.get("id")) for cls in classes]
-    
-        # Count unique students across all classes (no duplicates)
-        unique_student_ids = set()
-        if class_ids:
-            enrollments = self.enrollments.find(
-                {"class_id": {"$in": class_ids}, "status": "active"},
-                {"_id": 0, "student_id": 1}
-            )
-            for e in enrollments:
-                unique_student_ids.add(e["student_id"])
-    
+        
+        total_students = 0
+        for cls in classes:
+            total_students += len(cls.get('students', []))
+        
         overview = {
             "totalClasses": len(classes),
-            "totalStudents": len(unique_student_ids),
+            "totalStudents": total_students,
             "lastUpdated": datetime.utcnow().isoformat()
         }
         
