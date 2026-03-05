@@ -2136,39 +2136,39 @@ async def get_student_class_detail(class_id: str, email: str = Depends(verify_to
 
 
 @app.get("/class/verify/{class_id}")
-    async def verify_class_exists(class_id: str):
-        \"\"\"Verify if a class exists and return enrollment-required custom columns.\"\"\"
-        try:
-            class_data = db.get_class_by_id(class_id)
-            if not class_data:
-                raise HTTPException(status_code=404, detail="Class not found")
+async def verify_class_exists(class_id: str):
+    \"\"\"Verify if a class exists and return enrollment-required custom columns.\"\"\"
+    try:
+        class_data = db.get_class_by_id(class_id)
+        if not class_data:
+            raise HTTPException(status_code=404, detail="Class not found")
 
-            teacher_id = class_data.get("teacher_id")
-            teacher_name = "Unknown"
-            if teacher_id:
-                teacher = db.get_user(teacher_id)
-                if teacher:
-                    teacher_name = teacher.get("name", "Unknown")
+        teacher_id = class_data.get("teacher_id")
+        teacher_name = "Unknown"
+        if teacher_id:
+            teacher = db.get_user(teacher_id)
+            if teacher:
+                teacher_name = teacher.get("name", "Unknown")
 
-            # Only expose columns the teacher marked as required on enrollment
-            custom_columns = [
-                c for c in class_data.get("customColumns", [])
-                if c.get("requiredOnEnrollment")
-            ]
+        # Only expose columns the teacher marked as required on enrollment
+        custom_columns = [
+            c for c in class_data.get("customColumns", [])
+            if c.get("requiredOnEnrollment")
+        ]
 
-            return {
-                "exists": True,
-                "class_name": class_data.get("name", ""),
-                "teacher_name": teacher_name,
-                "class_id": class_id,
-                "custom_columns": custom_columns,   # ← NEW
-            }
+        return {
+            "exists": True,
+            "class_name": class_data.get("name", ""),
+            "teacher_name": teacher_name,
+            "class_id": class_id,
+            "custom_columns": custom_columns,   # ← NEW
+        }
 
-        except HTTPException:
-            raise
-        except Exception as e:
-            print(f"Error verifying class: {e}")
-            raise HTTPException(status_code=500, detail="Failed to verify class")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error verifying class: {e}")
+        raise HTTPException(status_code=500, detail="Failed to verify class")
 
 @app.post("/auth/verify-email", response_model=TokenResponse)
 async def verify_email(request: VerifyEmailRequest):
