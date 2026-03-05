@@ -14,6 +14,7 @@ interface AllClassesViewProps {
   currentMonth: number;
   currentYear: number;
   defaultThresholds: AttendanceThresholds;
+  totalUniqueStudents: number;
 }
 
 export const AllClassesView: React.FC<AllClassesViewProps> = ({
@@ -24,6 +25,7 @@ export const AllClassesView: React.FC<AllClassesViewProps> = ({
   currentMonth,
   currentYear,
   defaultThresholds,
+  totalUniqueStudents,
 }) => {
   const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
   const daysInMonth = getDaysInMonth(currentMonth, currentYear);
@@ -210,7 +212,7 @@ export const AllClassesView: React.FC<AllClassesViewProps> = ({
             </div>
           </div>
           <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Students</p>
-          <p className="text-2xl sm:text-3xl font-bold text-slate-900">{overallStats.totalStudents}</p>
+          <p className="text-2xl sm:text-2xl font-bold text-slate-900">{totalUniqueStudents}</p>
         </div>
 
         {/* Overall Attendance Card */}
