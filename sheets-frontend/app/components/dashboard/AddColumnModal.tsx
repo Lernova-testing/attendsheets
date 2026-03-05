@@ -1,13 +1,15 @@
 'use client';
-
 import React from 'react';
+import { CheckSquare, Square } from 'lucide-react';
 
 interface AddColumnModalProps {
   isOpen: boolean;
   columnLabel: string;
   columnType: 'text' | 'number' | 'select';
+  requiredOnEnrollment: boolean;
   onLabelChange: (value: string) => void;
   onTypeChange: (value: 'text' | 'number' | 'select') => void;
+  onRequiredOnEnrollmentChange: (value: boolean) => void;
   onClose: () => void;
   onCreate: () => void;
 }
@@ -16,8 +18,10 @@ export const AddColumnModal: React.FC<AddColumnModalProps> = ({
   isOpen,
   columnLabel,
   columnType,
+  requiredOnEnrollment,
   onLabelChange,
   onTypeChange,
+  onRequiredOnEnrollmentChange,
   onClose,
   onCreate,
 }) => {
@@ -30,7 +34,7 @@ export const AddColumnModal: React.FC<AddColumnModalProps> = ({
         <div className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 px-6 py-5 sm:py-6">
           <h2 className="text-lg sm:text-xl font-bold text-white leading-tight">Add Custom Column</h2>
           <p className="text-xs sm:text-sm text-emerald-100 mt-1 leading-relaxed opacity-90">
-            Add new field before date column
+            Add new field before date columns
           </p>
         </div>
 
@@ -47,6 +51,41 @@ export const AddColumnModal: React.FC<AddColumnModalProps> = ({
               className="w-full px-4 py-3 text-sm sm:text-base border-2 border-slate-200 rounded-xl bg-slate-50/50 text-slate-900 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/50 focus:bg-white transition-all duration-200"
               autoFocus
             />
+          </div>
+
+          {/* Ask on Enrollment toggle */}
+          <div
+            role="checkbox"
+            aria-checked={requiredOnEnrollment}
+            tabIndex={0}
+            onClick={() => onRequiredOnEnrollmentChange(!requiredOnEnrollment)}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                onRequiredOnEnrollmentChange(!requiredOnEnrollment);
+              }
+            }}
+            className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer select-none transition-all duration-200 ${
+              requiredOnEnrollment
+                ? 'border-emerald-500 bg-emerald-50'
+                : 'border-slate-200 bg-slate-50/50 hover:border-slate-300'
+            }`}
+          >
+            <div className="mt-0.5 flex-shrink-0">
+              {requiredOnEnrollment ? (
+                <CheckSquare className="w-5 h-5 text-emerald-600" />
+              ) : (
+                <Square className="w-5 h-5 text-slate-400" />
+              )}
+            </div>
+            <div>
+              <p className={`text-sm font-semibold ${requiredOnEnrollment ? 'text-emerald-900' : 'text-slate-700'}`}>
+                Ask students when enrolling
+              </p>
+              <p className={`text-xs mt-0.5 ${requiredOnEnrollment ? 'text-emerald-700' : 'text-slate-500'}`}>
+                Students will be prompted to fill in this field during class enrollment
+              </p>
+            </div>
           </div>
         </div>
 
