@@ -330,20 +330,20 @@ export default function StudentDashboard() {
   });
 
   const overallStats = classes.length > 0 ? (() => {
-    // Pool raw counts across all classes (same formula as backend)
     const totalPresent = classes.reduce((sum, c) => sum + getCount(c.statistics?.present ?? c.statistics?.present_days), 0);
-    const totalLate = classes.reduce((sum, c) => sum + getCount(c.statistics?.late), 0);
-    const totalSessions = classes.reduce((sum, c) => sum + getCount(c.statistics?.total_classes ?? c.statistics?.total_days), 0);
+    const totalAbsent = classes.reduce((sum, c) => sum + getCount(c.statistics?.absent), 0);
   
-    const avgAttendance = totalSessions > 0
-      ? ((totalPresent + totalLate) / totalSessions) * 100
+    // Match teacher dashboard: average the per-class percentages, excluding classes with no sessions
+    const classesWithSessions = classes.filter(c => getCount(c.statistics?.total_classes ?? c.statistics?.total_days) > 0);
+    const avgAttendance = classesWithSessions.length > 0
+      ? classesWithSessions.reduce((sum, c) => sum + getPercentage(c.statistics), 0) / classesWithSessions.length
       : 0;
   
     return {
       totalClasses: classes.length,
       avgAttendance,
       totalPresent,
-      totalAbsent: classes.reduce((sum, c) => sum + getCount(c.statistics?.absent), 0),
+      totalAbsent,
     };
   })() : null;
 
