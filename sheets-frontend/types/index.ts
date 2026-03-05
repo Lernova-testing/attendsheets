@@ -4,20 +4,6 @@ export interface AttendanceCounts {
   L: number;
 }
 
-export interface UserOverview {
-  totalClasses: number;
-  totalStudents: number;
-  lastUpdated?: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role?: string;
-  overview?: UserOverview;
-}
-
 export interface CustomColumn {
   id: string;
   label: string;
