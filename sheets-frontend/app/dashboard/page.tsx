@@ -757,6 +757,7 @@ export default function DashboardPage() {
               onClassSelect={handleClassSelect}
               defaultThresholds={defaultThresholds}
               onOpenClassSettings={handleOpenClassSettings}
+              totalUniqueStudents={user?.overview?.totalStudents ?? 0}
             />
           ) : showAllClasses ? (
             <AllClassesView
@@ -797,6 +798,7 @@ export default function DashboardPage() {
               currentMonth={currentMonth}
               currentYear={currentYear}
               defaultThresholds={defaultThresholds}
+              totalUniqueStudents={user?.overview?.totalStudents ?? 0}
             />
           ) : activeClass ? (
             <AttendanceSheet
