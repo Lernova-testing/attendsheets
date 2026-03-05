@@ -2137,7 +2137,7 @@ async def get_student_class_detail(class_id: str, email: str = Depends(verify_to
 
 @app.get("/class/verify/{class_id}")
 async def verify_class_exists(class_id: str):
-    \"\"\"Verify if a class exists and return enrollment-required custom columns.\"\"\"
+    """Verify if a class exists and return enrollment-required custom columns."""
     try:
         class_data = db.get_class_by_id(class_id)
         if not class_data:
