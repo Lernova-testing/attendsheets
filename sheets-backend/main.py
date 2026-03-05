@@ -199,6 +199,7 @@ class StudentEnrollmentRequest(BaseModel):
     name: str
     rollNo: str
     email: EmailStr
+    custom_fields: Optional[Dict[str, str]] = None
 
 class VerifyEmailRequest(BaseModel):
     email: EmailStr
@@ -1959,7 +1960,8 @@ async def enroll_in_class(request: StudentEnrollmentRequest, email: str = Depend
         student_info = {
             "name": request.name,
             "rollNo": request.rollNo,
-            "email": request.email
+            "email": request.email,
+            "custom_fields": request.custom_fields or {},
         }
         
         # Enroll student - this handles re-enrollment with data preservation
@@ -2134,43 +2136,39 @@ async def get_student_class_detail(class_id: str, email: str = Depends(verify_to
 
 
 @app.get("/class/verify/{class_id}")
-async def verify_class_exists(class_id: str):
-    """Verify if a class exists (public endpoint for enrollment)"""
-    try:
-        class_data = db.get_class_by_id(class_id)
-        if not class_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Class not found"
-            )
-        
-        # Get teacher info
-        teacher_id = class_data.get("teacher_id")
-        teacher_name = "Unknown"
-        if teacher_id:
-            teacher = db.get_user(teacher_id)
-            if teacher:
-                teacher_name = teacher.get("name", "Unknown")
-        
-        return {
-            "exists": True,
-            "class_name": class_data.get("name", ""),
-            "teacher_name": teacher_name,
-            "class_id": class_id
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error verifying class: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to verify class"
-        )
+    async def verify_class_exists(class_id: str):
+        \"\"\"Verify if a class exists and return enrollment-required custom columns.\"\"\"
+        try:
+            class_data = db.get_class_by_id(class_id)
+            if not class_data:
+                raise HTTPException(status_code=404, detail="Class not found")
 
+            teacher_id = class_data.get("teacher_id")
+            teacher_name = "Unknown"
+            if teacher_id:
+                teacher = db.get_user(teacher_id)
+                if teacher:
+                    teacher_name = teacher.get("name", "Unknown")
 
-# 5. UPDATE your existing verify-email endpoint to handle both roles
-# REPLACE your existing @app.post("/auth/verify-email") with this:
+            # Only expose columns the teacher marked as required on enrollment
+            custom_columns = [
+                c for c in class_data.get("customColumns", [])
+                if c.get("requiredOnEnrollment")
+            ]
+
+            return {
+                "exists": True,
+                "class_name": class_data.get("name", ""),
+                "teacher_name": teacher_name,
+                "class_id": class_id,
+                "custom_columns": custom_columns,   # ← NEW
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Error verifying class: {e}")
+            raise HTTPException(status_code=500, detail="Failed to verify class")
 
 @app.post("/auth/verify-email", response_model=TokenResponse)
 async def verify_email(request: VerifyEmailRequest):
