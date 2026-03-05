@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showDeviceRequestsModal, setShowDeviceRequestsModal] = useState(false);
   const [pendingDeviceRequests, setPendingDeviceRequests] = useState(0);
+  const [newColumnRequiredOnEnrollment, setNewColumnRequiredOnEnrollment] = useState(false);
   const getTodayDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -581,7 +582,8 @@ export default function DashboardPage() {
     const newColumn: CustomColumn = {
       id: `col_${Date.now()}`,
       label: newColumnLabel,
-      type: newColumnType
+      type: newColumnType,
+      requiredOnEnrollment: newColumnRequiredOnEnrollment,
     };
 
     const updatedClasses = classes.map(cls =>
@@ -594,6 +596,7 @@ export default function DashboardPage() {
 
     setNewColumnLabel('');
     setNewColumnType('text');
+    setNewColumnRequiredOnEnrollment(false);
     setShowAddColumnModal(false);
 
     const updatedClass = updatedClasses.find(c => c.id === activeClassId);
@@ -823,18 +826,21 @@ export default function DashboardPage() {
 
       {/* Modals */}
       <AddColumnModal
-        isOpen={showAddColumnModal}
-        columnLabel={newColumnLabel}
-        columnType={newColumnType}
-        onLabelChange={setNewColumnLabel}
-        onTypeChange={setNewColumnType}
-        onClose={() => {
-          setShowAddColumnModal(false);
-          setNewColumnLabel('');
-          setNewColumnType('text');
-        }}
-        onCreate={handleAddColumn}
-      />
+            isOpen={showAddColumnModal}
+            columnLabel={newColumnLabel}
+            columnType={newColumnType}
+            requiredOnEnrollment={newColumnRequiredOnEnrollment}
+            onLabelChange={setNewColumnLabel}
+            onTypeChange={setNewColumnType}
+            onRequiredOnEnrollmentChange={setNewColumnRequiredOnEnrollment}
+            onClose={() => {
+                setShowAddColumnModal(false);
+                setNewColumnLabel('');
+                setNewColumnType('text');
+                setNewColumnRequiredOnEnrollment(false);
+            }}
+            onCreate={handleAddColumn}
+        />
 
       <DeleteClassModal
         isOpen={showDeleteClassModal}
