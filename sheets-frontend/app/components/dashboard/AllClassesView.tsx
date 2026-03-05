@@ -106,8 +106,6 @@ export const AllClassesView: React.FC<AllClassesViewProps> = ({
       const thresholds = cls.thresholds || defaultThresholds;
       const students = cls.students || [];
 
-      totalStudents += students.length;
-
       students.forEach(student => {
         const stats = calculateStudentAttendance(
           student.attendance,
