@@ -4,6 +4,21 @@ import React, { useState } from 'react';
 import { X, BookOpen, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context-email';
 
+interface CustomColumn {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'select';
+  options?: string[];
+  requiredOnEnrollment?: boolean;
+}
+
+interface ClassInfo {
+  class_name: string;
+  teacher_name: string;
+  class_id: string;
+  custom_columns?: CustomColumn[];
+}
+
 interface EnrollmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,33 +33,30 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
   const { user } = useAuth();
   const [step, setStep] = useState<'class-id' | 'student-info'>('class-id');
   const [classId, setClassId] = useState('');
-  const [classInfo, setClassInfo] = useState<any>(null);
+  const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [rollNo, setRollNo] = useState('');
+  // Dynamic map of columnId → value for enrollment-required custom columns
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
 
   const studentName = user?.name || '';
   const studentEmail = user?.email || '';
 
+  // Columns on this class that the teacher wants students to fill at enrollment
+  const enrollmentColumns: CustomColumn[] =
+    (classInfo?.custom_columns ?? []).filter((c) => c.requiredOnEnrollment);
+
   const parseErrorMessage = (errorData: any): string => {
-    if (typeof errorData === 'string') {
-      return errorData;
-    }
+    if (typeof errorData === 'string') return errorData;
     if (errorData.detail) {
-      if (Array.isArray(errorData.detail)) {
-        return errorData.detail.map((err: any) => {
-          if (typeof err === 'string') return err;
-          if (err.msg) return err.msg;
-          return 'Validation error';
-        }).join(', ');
-      }
-      if (typeof errorData.detail === 'string') {
-        return errorData.detail;
-      }
+      if (Array.isArray(errorData.detail))
+        return errorData.detail
+          .map((err: any) => (typeof err === 'string' ? err : err.msg ?? 'Validation error'))
+          .join(', ');
+      if (typeof errorData.detail === 'string') return errorData.detail;
     }
-    if (errorData.message) {
-      return errorData.message;
-    }
+    if (errorData.message) return errorData.message;
     return 'An error occurred';
   };
 
@@ -65,6 +77,16 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
       if (response.ok) {
         const data = await response.json();
         setClassInfo(data);
+
+        // Pre-initialise custom field values so controlled inputs don't flip
+        const initial: Record<string, string> = {};
+        (data.custom_columns ?? [])
+          .filter((c: CustomColumn) => c.requiredOnEnrollment)
+          .forEach((c: CustomColumn) => {
+            initial[c.id] = '';
+          });
+        setCustomFieldValues(initial);
+
         setStep('student-info');
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -84,32 +106,42 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
       return;
     }
 
+    // Validate all required enrollment fields are filled
+    for (const col of enrollmentColumns) {
+      if (!customFieldValues[col.id]?.trim()) {
+        setError(`Please fill in "${col.label}"`);
+        return;
+      }
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      // ✅ FIXED - Check BOTH sessionStorage AND localStorage
-      const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
-      
+      const token =
+        sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+
       if (!token) {
         setError('Please login again');
         return;
       }
-      
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/student/enroll`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             class_id: classId,
             name: studentName,
             rollNo: rollNo.trim(),
-            email: studentEmail
-          })
+            email: studentEmail,
+            // Send custom field data so the backend can store it on the student record
+            custom_fields: customFieldValues,
+          }),
         }
       );
 
@@ -117,14 +149,9 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
 
       if (response.ok) {
         onSuccess();
-        setStep('class-id');
-        setClassId('');
-        setClassInfo(null);
-        setRollNo('');
-        setError('');
+        handleClose();
       } else {
         const errorMessage = parseErrorMessage(data);
-
         if (errorMessage.includes('already enrolled')) {
           setError('You are already enrolled in this class. Check your dashboard.');
         } else if (errorMessage.includes('not found')) {
@@ -148,6 +175,7 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
     setClassId('');
     setClassInfo(null);
     setRollNo('');
+    setCustomFieldValues({});
     setError('');
     onClose();
   };
@@ -170,7 +198,9 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
               <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">Enroll in Class</h2>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">
+                Enroll in Class
+              </h2>
               <p className="text-teal-50 text-xs sm:text-sm mt-0.5 sm:mt-1">
                 {step === 'class-id' ? 'Enter the Class ID' : 'Enter your information'}
               </p>
@@ -181,12 +211,13 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
         {/* Content */}
         <div className="p-4 sm:p-6 md:p-8">
           {error && (
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border-l-4 border-red-500 rounded-lg flex items-start gap-2 sm:gap-3 animate-shake">
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border-l-4 border-red-500 rounded-lg flex items-start gap-2 sm:gap-3">
               <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-red-700 text-xs sm:text-sm">{error}</p>
             </div>
           )}
 
+          {/* ── Step 1: Enter Class ID ── */}
           {step === 'class-id' ? (
             <>
               <div className="mb-4 sm:mb-6">
@@ -202,14 +233,10 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
                   autoFocus
                   disabled={loading}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && classId.trim() && !loading) {
-                      handleVerifyClass();
-                    }
+                    if (e.key === 'Enter' && classId.trim() && !loading) handleVerifyClass();
                   }}
                 />
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 Ask your teacher for the Class ID
-                </p>
+                <p className="text-xs text-gray-500 mt-2">💡 Ask your teacher for the Class ID</p>
               </div>
 
               <button
@@ -219,8 +246,8 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
               >
                 {loading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-sm sm:text-base">Verifying...</span>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Verifying...</span>
                   </>
                 ) : (
                   'Continue'
@@ -228,11 +255,17 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
               </button>
             </>
           ) : (
+            /* ── Step 2: Fill in student info ── */
             <>
+              {/* Class info card */}
               {classInfo && (
                 <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-teal-50 rounded-lg sm:rounded-xl border-2 border-teal-200">
-                  <h3 className="font-semibold text-teal-900 text-base sm:text-lg truncate">{classInfo.class_name}</h3>
-                  <p className="text-xs sm:text-sm text-teal-700 mt-1 truncate">👨‍🏫 Teacher: {classInfo.teacher_name}</p>
+                  <h3 className="font-semibold text-teal-900 text-base sm:text-lg truncate">
+                    {classInfo.class_name}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-teal-700 mt-1 truncate">
+                    👨‍🏫 Teacher: {classInfo.teacher_name}
+                  </p>
                   <p className="text-xs text-teal-600 mt-1">🆔 Class ID: {classInfo.class_id}</p>
                 </div>
               )}
@@ -248,31 +281,82 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
                   disabled
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl text-sm sm:text-base text-gray-600 bg-gray-50 cursor-not-allowed"
                 />
-                <p className="text-xs text-teal-600 mt-1">
-                  ℹ️ Using your account name
-                </p>
+                <p className="text-xs text-teal-600 mt-1">ℹ️ Using your account name</p>
               </div>
 
               {/* Editable Roll Number */}
               <div className="mb-3 sm:mb-4">
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                  Roll Number *
+                  Roll Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={rollNo}
                   onChange={(e) => setRollNo(e.target.value)}
-                  placeholder="e.g., 101 or CS-101"
+                  placeholder="e.g. 101 or CS-101"
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl text-sm sm:text-base text-black focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-colors cursor-text"
                   disabled={loading}
                   autoFocus
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && rollNo.trim() && !loading) {
-                      handleEnroll();
-                    }
+                    if (e.key === 'Enter' && rollNo.trim() && !loading) handleEnroll();
                   }}
                 />
               </div>
+
+              {/* ── Dynamic enrollment-required custom columns ── */}
+              {enrollmentColumns.length > 0 && (
+                <div className="mb-3 sm:mb-4 space-y-3">
+                  <div className="flex items-center gap-2 py-1">
+                    <div className="flex-1 h-px bg-teal-100" />
+                    <span className="text-xs font-medium text-teal-600 whitespace-nowrap">
+                      Additional Info
+                    </span>
+                    <div className="flex-1 h-px bg-teal-100" />
+                  </div>
+
+                  {enrollmentColumns.map((col) => (
+                    <div key={col.id}>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                        {col.label} <span className="text-red-500">*</span>
+                      </label>
+                      {col.type === 'select' && col.options?.length ? (
+                        <select
+                          value={customFieldValues[col.id] ?? ''}
+                          onChange={(e) =>
+                            setCustomFieldValues((prev) => ({
+                              ...prev,
+                              [col.id]: e.target.value,
+                            }))
+                          }
+                          disabled={loading}
+                          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl text-sm sm:text-base text-black focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-colors bg-white"
+                        >
+                          <option value="">Select {col.label}…</option>
+                          {col.options.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={col.type === 'number' ? 'number' : 'text'}
+                          value={customFieldValues[col.id] ?? ''}
+                          onChange={(e) =>
+                            setCustomFieldValues((prev) => ({
+                              ...prev,
+                              [col.id]: e.target.value,
+                            }))
+                          }
+                          placeholder={`Enter ${col.label.toLowerCase()}`}
+                          disabled={loading}
+                          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl text-sm sm:text-base text-black focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-colors cursor-text"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Read-only Email */}
               <div className="mb-4 sm:mb-6">
@@ -285,9 +369,7 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
                   disabled
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl text-sm sm:text-base text-gray-600 bg-gray-50 cursor-not-allowed"
                 />
-                <p className="text-xs text-teal-600 mt-1">
-                  ℹ️ Using your account email
-                </p>
+                <p className="text-xs text-teal-600 mt-1">ℹ️ Using your account email</p>
               </div>
 
               {/* Buttons */}
@@ -297,6 +379,7 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
                     setStep('class-id');
                     setError('');
                     setRollNo('');
+                    setCustomFieldValues({});
                   }}
                   disabled={loading}
                   className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm sm:text-base font-medium rounded-lg sm:rounded-xl transition-colors cursor-pointer disabled:opacity-50"
@@ -310,8 +393,8 @@ export const StudentEnrollmentModal: React.FC<EnrollmentModalProps> = ({
                 >
                   {loading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-sm sm:text-base">Enrolling...</span>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Enrolling...</span>
                     </>
                   ) : (
                     'Enroll'
